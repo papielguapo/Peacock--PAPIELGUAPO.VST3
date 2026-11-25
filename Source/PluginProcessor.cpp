@@ -106,13 +106,19 @@ public:
 class Panel final : public juce::AudioProcessorEditor
 {
     struct DialStyle : juce::LookAndFeel_V4 {
+        bool deck=false;
+        juce::Colour accent;
         void drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,float value,float start,float end,juce::Slider&) override {
             auto r=float(juce::jmin(w,h))/2-6; auto cx=x+w*.5f, cy=y+h*.5f;
             auto polar=[&](float angle,float radius){return juce::Point<float>(cx+radius*std::sin(angle),cy-radius*std::cos(angle));};
-            for(int i=0;i<=20;++i){
-                auto angle=start+(end-start)*i/20;
-                g.setColour(juce::Colour(i<=value*20?0xffeed29b:0xff63716d));
-                g.drawLine({polar(angle,r-2),polar(angle,r+(i%5==0?5:1))},1.6f);
+            if(deck){
+                auto box=juce::Rectangle<float>(2*r,2*r).withCentre({cx,cy});
+                g.setColour(juce::Colour(0xff090e10));g.fillEllipse(box);
+                juce::Path arc;arc.addCentredArc(cx,cy,r-2,r-2,0,start,end,true);
+                g.setColour(juce::Colour(0xff455053));g.strokePath(arc,juce::PathStrokeType(3));
+                juce::Path active;active.addCentredArc(cx,cy,r-2,r-2,0,start,start+value*(end-start),true);
+                g.setColour(accent);g.strokePath(active,juce::PathStrokeType(3));
+                g.drawLine({polar(start+value*(end-start),r*.45f),polar(start+value*(end-start),r-5)},2.5f);return;
             }
             auto ring=juce::Rectangle<float>(2*r-4,2*r-4).withCentre({cx,cy});
             g.setGradientFill(juce::ColourGradient(juce::Colour(0xfff1e9cd),ring.getX(),ring.getY(),juce::Colour(0xff47504a),ring.getRight(),ring.getBottom(),false));
@@ -127,8 +133,19 @@ class Panel final : public juce::AudioProcessorEditor
     std::array<juce::Slider,5> knobs;
     std::array<std::unique_ptr<State::SliderAttachment>,5> links;
     juce::StringArray colors{"Silver","Gold","Rich","Fat","Deep"};
+    State& ui;
+    juce::TextButton flip;
+    std::array<juce::TextButton,7> tabs;
+    int palette=0;
+    void refresh() {
+        constexpr juce::uint32 accents[]={0xff55d5ad,0xffffad54,0xffb4a4ff,0xffeabe62,0xff75dbf4,0xffe0ddaa,0xff7ef684};
+        style.accent=juce::Colour(accents[palette]);
+        flip.setButtonText(style.deck?"A":"B");flip.setTooltip(style.deck?"Cara A":"Cara B");
+        for(int i=0;i<7;++i){tabs[i].setVisible(style.deck);tabs[i].setColour(juce::TextButton::textColourOffId,i==palette?style.accent:juce::Colours::white);}
+        resized();repaint();
+    }
 public:
-    Panel(Peacock& p,State& state):AudioProcessorEditor(p) {
+    Panel(Peacock& p,State& state):AudioProcessorEditor(p),ui(state) {
         setLookAndFeel(&style);
         const char* ids[]={"Harmonic","Dynamic","OutputTrim","Dither","Color"};
         for(int i=0;i<5;++i){
@@ -140,28 +157,50 @@ public:
         }
         knobs[2].setName("Output Trim");
         knobs[3].setRange(0,100,100);
-        setSize(600,192);
+        flip.setComponentID("flip");flip.setName("Cambiar cara");
+        flip.onClick=[this]{style.deck=!style.deck;ui.state.setProperty("deck",style.deck,nullptr);refresh();};
+        addAndMakeVisible(flip);
+        const char* codes[]={"CS","FL","PT","AB","LP","98","AT"};
+        for(int i=0;i<7;++i){auto& t=tabs[i];t.setButtonText(codes[i]);t.onClick=[this,i]{palette=i;ui.state.setProperty("palette",i,nullptr);refresh();};addChildComponent(t);}
+        style.deck=bool(ui.state.getProperty("deck",false));palette=juce::jlimit(0,6,int(ui.state.getProperty("palette",0)));
+        setSize(545,173);refresh();
     }
     ~Panel() override {setLookAndFeel(nullptr);}
     void resized() override {
-        for(int i=0;i<5;++i) knobs[i].setBounds(14+i*116,42,108,83);
+        for(int i=0;i<5;++i) knobs[i].setBounds(style.deck?8+i*106:13+i*95,style.deck?32:32,style.deck?96:79,style.deck?65:81);
+        flip.setBounds(517,4,23,20);
+        for(int i=0;i<7;++i) tabs[i].setBounds(280+32*i,4,30,20);
+    }
+    void mouseDoubleClick(const juce::MouseEvent& e) override {
+        if(e.y<29 || (style.deck && e.y>136) || (!style.deck && e.x>=471 && e.y>136)) flip.onClick();
     }
     void paint(juce::Graphics& g) override {
-        g.setGradientFill(juce::ColourGradient(juce::Colour(0xffbecbc0),0,0,juce::Colour(0xff8fa7a2),600,192,false));g.fillAll();
+        if(style.deck){
+            g.fillAll(juce::Colour(0xff1c2529));g.setColour(style.accent);g.setFont(16.f);
+            g.drawText("PEACOCK  /  DECK",12,3,240,22,juce::Justification::centredLeft);
+            g.drawHorizontalLine(27,9,536);
+            for(int i=0;i<5;++i){auto x=8+i*106;g.setColour(juce::Colours::white);g.setFont(13.f);g.drawText(knobs[i].getName(),x,97,96,19,juce::Justification::centred);
+                auto v=knobs[i].getValue();g.setColour(style.accent);g.drawText(i==4?colors[int(v)]:i==3?(v>0?juce::String("16 Bit"):juce::String("Off")):juce::String(v,1),x,115,96,18,juce::Justification::centred);}
+            g.setColour(juce::Colour(0xff0d1517));g.fillRect(8,138,529,28);g.setColour(style.accent);g.setFont(12.f);
+            g.drawText("COLOR  /  "+colors[int(knobs[4].getValue())].toUpperCase(),18,140,180,24,juce::Justification::centredLeft);
+            g.drawText("OUTPUT  /  "+juce::String(knobs[2].getValue(),1)+" dB",180,140,165,24,juce::Justification::centred);
+            g.drawText("PAPIELGUAPO",350,140,174,24,juce::Justification::centredRight);return;
+        }
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xffbecbc0),0,0,juce::Colour(0xff8fa7a2),545,173,false));g.fillAll();
         juce::Random grain(541);g.setColour(juce::Colours::black.withAlpha(.055f));
         for(int i=0;i<1800;++i) g.fillRect(grain.nextInt(600),grain.nextInt(192),2,1);
         auto ink=juce::Colour(0xff173832);g.setColour(ink);g.setFont(26.f);
         g.drawText("Peacock",18,4,160,34,juce::Justification::centredLeft);
-        g.setFont(13.f);g.drawText("VINYL EMULATION",188,8,224,26,juce::Justification::centred);
-        g.drawText("PAPIELGUAPO",425,8,154,26,juce::Justification::centredRight);
-        g.drawHorizontalLine(39,16,584);
+        g.setFont(13.f);g.drawText("VINYL EMULATION",132,5,174,26,juce::Justification::centredLeft);
+        g.setFont(10.f);g.drawText("PAPIELGUAPO",461,145,80,18,juce::Justification::centredRight);
+        g.setFont(11.f);for(int i=0;i<5;++i)g.drawText(colors[i].toUpperCase(),472,39+14*i,69,15,juce::Justification::centredLeft);
         const char* ranges[]={"0  -  100","0  -  100","-6  /  +6 dB","OFF  /  ON","SILVER  -  DEEP"};
         for(int i=0;i<5;++i){
-            int x=14+i*116;g.setColour(ink);g.setFont(11.f);g.drawText(ranges[i],x,121,108,15,juce::Justification::centred);
-            g.setFont(14.f);g.drawText(knobs[i].getName().toUpperCase(),x,136,108,19,juce::Justification::centred);
-            g.setColour(juce::Colour(0xff102222));g.fillRoundedRectangle(float(x+15),158,78,23,3);
+            int x=5+i*95;g.setColour(ink);g.setFont(10.f);if(i<4)g.drawText(ranges[i],x,107,95,13,juce::Justification::centred);
+            g.setFont(13.f);g.drawText(knobs[i].getName().toUpperCase(),x,120,95,18,juce::Justification::centred);
+            g.setColour(juce::Colour(0xff102222));g.fillRect(x+17,140,61,20);
             auto v=knobs[i].getValue();auto text=i==4?colors[int(v)]:i==3?(v>0?juce::String("16 Bit"):juce::String("Off")):juce::String(v,1);
-            g.setColour(juce::Colour(0xffedeacb));g.drawText(text,x,158,108,23,juce::Justification::centred);
+            g.setColour(juce::Colour(0xffedeacb));g.drawText(text,x,140,95,20,juce::Justification::centred);
         }
     }
 };

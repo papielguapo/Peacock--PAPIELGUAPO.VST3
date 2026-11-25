@@ -4,6 +4,10 @@
 
 ![Interfaz de Peacock con Harmonic en 60, Dynamic en 67, Dither en cero y Color en Fat](docs/peacock.png)
 
+**Cara A / Cara B.** Pulsa **B** en la esquina superior derecha para abrir el panel alternativo, o haz doble clic en la cabecera. La cara A sigue la distribución compacta de cinco mandos de la referencia; la B mantiene el mismo tamaño y los mismos mandos, añade siete paletas y muestra Color y Output Trim en el visor inferior. Las pestañas **CS, FL, PT, AB, LP, 98 y AT** solo cambian los colores. Pulsa **A** para volver. La cara y la paleta se guardan con la instancia, sin cambiar los parámetros de audio.
+
+![Cara B de Peacock: cinco mandos sobre un panel oscuro con selector de paleta y visor inferior](docs/peacock-deck.png)
+
 ## Instalación
 
 1. Descarga [Peacock para Windows x64](https://github.com/papielguapo/Peacock/releases/latest/download/Peacock-Windows-x64.zip) y descomprime el ZIP.

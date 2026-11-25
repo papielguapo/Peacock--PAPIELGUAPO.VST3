@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Peacock VERSION 0.2.0 LANGUAGES C CXX)
+project(Peacock VERSION 0.3.0 LANGUAGES C CXX)
 set(JUCE_DIR "$ENV{USERPROFILE}/PitchCanvas/build/_deps/juce-src" CACHE PATH "JUCE source checkout")
 add_subdirectory("${JUCE_DIR}" JUCE EXCLUDE_FROM_ALL)
 juce_add_plugin(Peacock COMPANY_NAME PAPIELGUAPO PLUGIN_MANUFACTURER_CODE Papi
