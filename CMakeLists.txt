@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.22)
+project(Peacock VERSION 0.1.0 LANGUAGES C CXX)
+set(JUCE_DIR "$ENV{USERPROFILE}/PitchCanvas/build/_deps/juce-src" CACHE PATH "JUCE source checkout")
+add_subdirectory("${JUCE_DIR}" JUCE EXCLUDE_FROM_ALL)
+juce_add_plugin(Peacock COMPANY_NAME PAPIELGUAPO PLUGIN_MANUFACTURER_CODE Papi
+    PLUGIN_CODE Pcv1 FORMATS VST3 PRODUCT_NAME "Peacock" VST3_CATEGORIES Fx Distortion)
+target_sources(Peacock PRIVATE Source/PluginProcessor.cpp)
+target_compile_features(Peacock PRIVATE cxx_std_20)
+target_compile_definitions(Peacock PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
+target_link_libraries(Peacock PRIVATE juce::juce_audio_utils)
