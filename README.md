@@ -1,4 +1,4 @@
-# Peacock (1:1 Hardware & DSP Study Edition)
+# Peacock (1:1 Hardware & DSP)
 
 **Peacock** es la recreación 1:1 en formato **VST3 (Windows x64)** de la emulación de corte y reproducción de vinilo **Crane Song Peacock**, desarrollada y documentada por **PAPIELGUAPO** para ejecución en DAW y estudio de ingeniería inversa DSP.
 
